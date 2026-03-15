@@ -15,10 +15,7 @@
             "name": "Schedule Trigger",
             "type": "n8n-nodes-base.scheduleTrigger",
             "typeVersion": 1.2,
-            "position": [
-                250,
-                300
-            ]
+            "position": [250, 300]
         },
         {
             "parameters": {
@@ -47,10 +44,7 @@
             "name": "Fetch Coreradio HTML",
             "type": "n8n-nodes-base.httpRequest",
             "typeVersion": 4.1,
-            "position": [
-                450,
-                300
-            ]
+            "position": [450, 300]
         },
         {
             "parameters": {
@@ -59,22 +53,16 @@
             "name": "Parse HTML Releases",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [
-                650,
-                300
-            ]
+            "position": [650, 300]
         },
         {
             "parameters": {
-                "jsCode": "// Check for favorite bands\nconst favoriteBands = [\n 'vildhjarta', 'allt', 'imminence', 'karmanjakah', 'humanity's last breath', 'invent animate', 'currents', 'lorna shore', 'peur', 'before i turn', 'spiritbox', 'sleep token', 'bring me the horizon'\n];\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  const searchText = (data.artist + ' ' + data.track + ' ' + data.genre).toLowerCase();\n\n  const isFavorite = favoriteBands.some(band => searchText.includes(band.toLowerCase()));\n\n  results.push({\n    json: {\n      ...data,\n      isFavorite: isFavorite,\n      matchReason: isFavorite ? 'Favorite band detected' : 'New release'\n    }\n  });\n}\n\nreturn results;"
+            "jsCode": "// Check for favorite bands\nconst favoriteBands = [\n 'vildhjarta', 'allt', 'imminence', 'karmanjakah', 'humanity's last breath', 'invent animate', 'currents', 'lorna shore', 'peur', 'before i turn', 'spiritbox', 'sleep token', 'bring me the horizon'\n];\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  const searchText = (data.artist + ' ' + data.track + ' ' + data.genre).toLowerCase();\n\n  const isFavorite = favoriteBands.some(band => searchText.includes(band.toLowerCase()));\n\n  results.push({\n    json: {\n      ...data,\n      isFavorite: isFavorite,\n      matchReason: isFavorite ? 'Favorite band detected' : 'New release'\n    }\n  });\n}\n\nreturn results;"
             },
             "name": "Check Favorites",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [
-                850,
-                300
-            ]
+            "position": [850, 300]
         },
         {
             "parameters": {
@@ -101,10 +89,7 @@
             "name": "Filter Favorites",
             "type": "n8n-nodes-base.if",
             "typeVersion": 2,
-            "position": [
-                1050,
-                200
-            ]
+            "position": [1050, 200]
         },
         {
             "parameters": {
@@ -128,10 +113,7 @@
             "name": "Gemini AI Analysis",
             "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
             "typeVersion": 1,
-            "position": [
-                1250,
-                150
-            ],
+            "position": [1250, 150],
             "credentials": {
                 "googlePalmApi": {
                     "id": "={{ $env.GEMINI_CREDENTIAL_ID }}",
@@ -151,10 +133,7 @@
             "name": "Send Favorite Alert",
             "type": "n8n-nodes-base.telegram",
             "typeVersion": 1.1,
-            "position": [
-                1450,
-                150
-            ],
+            "position": [1450, 150],
             "credentials": {
                 "telegramApi": {
                     "id": "={{ $env.TELEGRAM_CREDENTIAL_ID }}",
@@ -173,10 +152,7 @@
             "name": "Send Daily Summary",
             "type": "n8n-nodes-base.telegram",
             "typeVersion": 1.1,
-            "position": [
-                1250,
-                400
-            ],
+            "position": [1250, 400],
             "credentials": {
                 "telegramApi": {
                     "id": "={{ $env.TELEGRAM_CREDENTIAL_ID }}",
@@ -188,75 +164,33 @@
     "connections": {
         "Schedule Trigger": {
             "main": [
-                [
-                    {
-                        "node": "Fetch Coreradio HTML",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+                [{ "node": "Fetch Coreradio HTML", "type": "main", "index": 0 }]
             ]
         },
         "Fetch Coreradio HTML": {
             "main": [
-                [
-                    {
-                        "node": "Parse HTML Releases",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+                [{ "node": "Parse HTML Releases", "type": "main", "index": 0 }]
             ]
         },
         "Parse HTML Releases": {
             "main": [
-                [
-                    {
-                        "node": "Check Favorites",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+                [{ "node": "Check Favorites", "type": "main", "index": 0 }]
             ]
         },
         "Check Favorites": {
             "main": [
-                [
-                    {
-                        "node": "Filter Favorites",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+                [{ "node": "Filter Favorites", "type": "main", "index": 0 }]
             ]
         },
         "Filter Favorites": {
             "main": [
-                [
-                    {
-                        "node": "Gemini AI Analysis",
-                        "type": "main",
-                        "index": 0
-                    }
-                ],
-                [
-                    {
-                        "node": "Send Daily Summary",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+                [{ "node": "Gemini AI Analysis", "type": "main", "index": 0 }],
+                [{ "node": "Send Daily Summary", "type": "main", "index": 0 }]
             ]
         },
         "Gemini AI Analysis": {
             "main": [
-                [
-                    {
-                        "node": "Send Favorite Alert",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
+                [{ "node": "Send Favorite Alert", "type": "main", "index": 0 }]
             ]
         }
     },
