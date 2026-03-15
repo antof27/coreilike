@@ -1,231 +1,266 @@
 {
-  "name": "CoreLike",
-  "nodes": [
-    {
-      "parameters": {
-        "updates": ["message", "channel_post"],
-        "additionalFields": {}
-      },
-      "id": "telegram-trigger",
-      "name": "Telegram Trigger",
-      "type": "n8n-nodes-base.telegramTrigger",
-      "typeVersion": 1,
-      "position": [250, 300],
-      "webhookId": "coreradio-webhook"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Advanced music metadata extraction\nconst msg = $input.first().json.message || $input.first().json.channel_post;\nif (!msg) return [];\n\nconst text = msg.text || msg.caption || '';\nconst photo = msg.photo ? msg.photo[msg.photo.length - 1] : null;\n\n// Multiple parsing patterns for different Coreradio formats\nlet artist = '', track = '', genre = '', country = '', year = '';\n\n// Pattern 1: Artist - Track [Genre] (Country) | Year\nconst pattern1 = text.match(/^(.+?)\\s+-\\s+(.+?)\\s*\\[(.+?)\\]\\s*\\((.+?)\\)\\s*\\|\\s*(\\d{4})/);\n\n// Pattern 2: Artist - Track [Genre] (Country)\nconst pattern2 = text.match(/^(.+?)\\s+-\\s+(.+?)\\s*\\[(.+?)\\]\\s*\\((.+?)\\)/);\n\n// Pattern 3: Artist \"Track\" [Genre]\nconst pattern3 = text.match(/^(.+?)\\s+\"(.+?)\"\\s*\\[(.+?)\\]/);\n\nif (pattern1) {\n  [, artist, track, genre, country, year] = pattern1;\n} else if (pattern2) {\n  [, artist, track, genre, country] = pattern2;\n} else if (pattern3) {\n  [, artist, track, genre] = pattern3;\n} else {\n  // Fallback: first line is title\n  const lines = text.split('\\n');\n  artist = lines[0].split(' - ')[0] || 'Unknown';\n  track = lines[0].split(' - ')[1] || 'Unknown';\n}\n\n// Your favorite bands - EXPAND THIS LIST\nconst favoriteArtists = [\n  'metallica', 'iron maiden', 'slayer', 'megadeth', 'anthrax',\n  'pantera', 'tool', 'opeth', 'dream theater', 'porcupine tree',\n  'gojira', 'mastodon', 'baroness', 'converge', 'neurosis',\n  'isIS', 'cult of luna', 'amenra', 'neurosis', 'shellac',\n  'big brave', 'sumac', 'old man gloom', 'the ocean',\n  'leprous', 'haken', 'between the buried and me', 'meshuggah',\n  'animals as leaders', 'plini', 'intervals', 'chon'\n];\n\n// Check for exact matches or close similarities\nconst artistLower = artist.toLowerCase();\nconst isDirectMatch = favoriteArtists.some(band => artistLower.includes(band));\n\nreturn [{\n  json: {\n    rawText: text,\n    artist: artist.trim(),\n    track: track.trim(),\n    genre: genre.trim(),\n    country: country.trim(),\n    year: year.trim(),\n    photoFileId: photo?.file_id,\n    photoUniqueId: photo?.file_unique_id,\n    chatId: msg.chat?.id,\n    messageId: msg.message_id,\n    isDirectMatch: isDirectMatch,\n    favoriteArtistsList: favoriteArtists.join(', ')\n  }\n}];"
-      },
-      "id": "parse-music",
-      "name": "Parse Music Data",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [450, 300]
-    },
-    {
-      "parameters": {
-        "resource": "file",
-        "operation": "get",
-        "fileId": "={{ $json.photoFileId }}"
-      },
-      "id": "download-cover",
-      "name": "Download Cover Art",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.1,
-      "position": [650, 300],
-      "credentials": {
-        "telegramApi": {
-          "id": "8295349107:AAGc-Aytq11ExZS5a5q9HtGfAfw58DyROYs",
-          "name": "Telegram Bot"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": "gemini-2.5-pro-exp-03-25",
-        "options": {
-          "temperature": 0.3
-        },
-        "messages": {
-          "values": [
-            {
-              "role": "system",
-              "content": "You are a music curator AI. Analyze the band, genre, and album cover image. \n\nMY FAVORITE ARTISTS: {{ $json.favoriteArtistsList }}\n\nTASK: Determine if I would like this release based on:\n1. Direct artist match with my favorites\n2. Genre similarity (progressive metal, post-metal, sludge, math rock, technical death metal, etc.)\n3. Visual aesthetics of the cover art (dark, atmospheric, complex, minimalist, etc.)\n4. Country/scene (Nordic, American, etc.)\n\nRESPOND IN THIS EXACT FORMAT:\nDECISION: [YES or NO]\nCONFIDENCE: [1-10]\nREASON: [2-3 sentences explaining why I would or wouldn't like it]\nSIMILAR_TO: [Which of my favorite artists this resembles most, or \"None\"]\n\nBe strict - only recommend if confidence is 7+."
+    "name": "CoreILike",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours",
+                            "hoursInterval": 6
+                        }
+                    ]
+                }
             },
-            {
-              "role": "user",
-              "content": "=Artist: {{ $json.artist }}\nTrack/Album: {{ $json.track }}\nGenre: {{ $json.genre }}\nCountry: {{ $json.country }}\nYear: {{ $json.year }}\n\nAlbum cover image attached. Analyze the visual style."
+            "name": "Schedule Trigger",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://coreradio.online/news/",
+                "options": {
+                    "response": {
+                        "response": {
+                            "fullResponse": true
+                        }
+                    },
+                    "headers": {
+                        "parameters": [
+                            {
+                                "name": "User-Agent",
+                                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                            },
+                            {
+                                "name": "Accept",
+                                "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                            }
+                        ]
+                    }
+                }
+            },
+            "name": "Fetch Coreradio HTML",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Parse Coreradio HTML to extract releases\nconst html = $input.first().json.body;\nconst releases = [];\n\n// Primary regex: match shortstory blocks from DLE CMS\nconst itemRegex = /<div class=\"shortstory\">[\\s\\S]*?<h2 class=\"title\">[\\s\\S]*?<a href=\"([^\"]+)\">([\\s\\S]*?)<\\/a>[\\s\\S]*?<\\/h2>[\\s\\S]*?<div class=\"shortimg\">[\\s\\S]*?<img[^>]+src=\"([^\"]+)\"[\\s\\S]*?<\\/div>[\\s\\S]*?<div class=\"maincont\">([\\s\\S]*?)<\\/div>/g;\n\nlet match;\nwhile ((match = itemRegex.exec(html)) !== null) {\n  const url = match[1];\n  const titleHtml = match[2];\n  const imageUrl = match[3];\n  const contentHtml = match[4];\n\n  const title = titleHtml.replace(/<[^>]+>/g, '').trim();\n\n  const genreMatch = contentHtml.match(/<b>Genre:<\\/b>\\s*([^<]+)/);\n  const countryMatch = contentHtml.match(/<b>Country:<\\/b>\\s*([^<]+)/);\n  const qualityMatch = contentHtml.match(/<b>Quality:<\\/b>\\s*([^<]+)/);\n\n  let artist = '', track = '', type = '', year = '';\n  const titleMatch = title.match(/^(.+?)\\s+-\\s+(.+?)\\s*(?:\\[([^\\]]+)\\])?\\s*\\((\\d{4})\\)/);\n\n  if (titleMatch) {\n    [, artist, track, type, year] = titleMatch;\n  } else {\n    const parts = title.split(' - ');\n    if (parts.length >= 2) {\n      artist = parts[0];\n      track = parts.slice(1).join(' - ');\n    } else {\n      artist = title;\n      track = 'Unknown';\n    }\n  }\n\n  releases.push({\n    json: {\n      artist: artist.trim(),\n      track: track.trim(),\n      type: (type || '').trim(),\n      year: year || new Date().getFullYear().toString(),\n      genre: genreMatch ? genreMatch[1].trim() : 'Unknown',\n      country: countryMatch ? countryMatch[1].trim() : 'Unknown',\n      quality: qualityMatch ? qualityMatch[1].trim() : 'Unknown',\n      imageUrl: imageUrl,\n      sourceUrl: url,\n      fullTitle: title,\n      scrapedAt: new Date().toISOString()\n    }\n  });\n}\n\n// Fallback: look for Spotify / Apple Music cover art patterns\nif (releases.length === 0) {\n  const altRegex = /<img[^>]+src=\"(https:\\/\\/(?:i\\.scdn\\.co|is\\d+-ssl\\.mzstatic\\.com)[^\"]+)\"[^>]*>[\\s\\S]*?<b>Genre:<\\/b>\\s*([^<]+)[\\s\\S]*?<b>Country:<\\/b>\\s*([^<]+)[\\s\\S]*?<div[^>]*>([^<]+(?:\\[[^\\]]+\\])?\\s*\\(\\d{4}\\))<\\/div>/g;\n\n  while ((match = altRegex.exec(html)) !== null) {\n    const imageUrl = match[1];\n    const genre = match[2].trim();\n    const country = match[3].trim();\n    const title = match[4].trim();\n\n    let artist = '', track = '', type = '', year = '';\n    const titleMatch = title.match(/^(.+?)\\s+-\\s+(.+?)\\s*(?:\\[([^\\]]+)\\])?\\s*\\((\\d{4})\\)/);\n\n    if (titleMatch) {\n      [, artist, track, type, year] = titleMatch;\n    } else {\n      const parts = title.split(' - ');\n      artist = parts[0] || 'Unknown';\n      track = parts.slice(1).join(' - ') || 'Unknown';\n    }\n\n    releases.push({\n      json: {\n        artist: artist.trim(),\n        track: track.trim(),\n        type: (type || '').trim(),\n        year: year || new Date().getFullYear().toString(),\n        genre: genre,\n        country: country,\n        quality: 'MP3, 320 kbps / FLAC',\n        imageUrl: imageUrl,\n        sourceUrl: 'https://coreradio.online/news/',\n        fullTitle: title,\n        scrapedAt: new Date().toISOString()\n      }\n    });\n  }\n}\n\nreturn releases;"
+            },
+            "name": "Parse HTML Releases",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                650,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Check for favorite bands\nconst favoriteBands = [\n 'vildhjarta', 'allt', 'imminence', 'karmanjakah', 'humanity's last breath', 'invent animate', 'currents', 'lorna shore', 'peur', 'before i turn', 'spiritbox', 'sleep token', 'bring me the horizon'\n];\n\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  const searchText = (data.artist + ' ' + data.track + ' ' + data.genre).toLowerCase();\n\n  const isFavorite = favoriteBands.some(band => searchText.includes(band.toLowerCase()));\n\n  results.push({\n    json: {\n      ...data,\n      isFavorite: isFavorite,\n      matchReason: isFavorite ? 'Favorite band detected' : 'New release'\n    }\n  });\n}\n\nreturn results;"
+            },
+            "name": "Check Favorites",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "is-favorite",
+                            "leftValue": "={{ $json.isFavorite }}",
+                            "rightValue": "true",
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                }
+            },
+            "name": "Filter Favorites",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1050,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "model": "gemini-2.0-flash-exp",
+                "options": {
+                    "temperature": 0.7
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "role": "system",
+                            "content": "You are a metal music expert. Analyze this release and write a brief, enthusiastic description (2-3 sentences). Mention the genre, the vibe, and why fans of {{ $json.artist }} or {{ $json.genre }} might enjoy this. Be concise but engaging."
+                        },
+                        {
+                            "role": "user",
+                            "content": "=Artist: {{ $json.artist }}\nRelease: {{ $json.track }}\nGenre: {{ $json.genre }}\nCountry: {{ $json.country }}\nYear: {{ $json.year }}"
+                        }
+                    ]
+                }
+            },
+            "name": "Gemini AI Analysis",
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+            "typeVersion": 1,
+            "position": [
+                1250,
+                150
+            ],
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "={{ $env.GEMINI_CREDENTIAL_ID }}",
+                    "name": "={{ $env.GEMINI_CREDENTIAL_NAME }}"
+                }
             }
-          ]
-        }
-      },
-      "id": "gemini-analysis",
-      "name": "Gemini 2.5 Pro Analysis",
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1,
-      "position": [850, 300],
-      "credentials": {
-        "googlePalmApi": {
-          "id": "YOUR_GEMINI_CREDENTIAL",
-          "name": "Google Gemini API"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Parse Gemini response\nconst aiResponse = $input.first().json.content;\nconst originalData = $('Parse Music Data').item.json;\n\nconst decisionMatch = aiResponse.match(/DECISION:\\s*(YES|NO)/i);\nconst confidenceMatch = aiResponse.match(/CONFIDENCE:\\s*(\\d+)/);\nconst reasonMatch = aiResponse.match(/REASON:\\s*(.+?)(?=SIMILAR_TO:|$)/s);\nconst similarMatch = aiResponse.match(/SIMILAR_TO:\\s*(.+)/);\n\nconst decision = decisionMatch ? decisionMatch[1].toUpperCase() : 'NO';\nconst confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 0;\n\nreturn [{\n  json: {\n    ...originalData,\n    aiDecision: decision,\n    aiConfidence: confidence,\n    aiReason: reasonMatch ? reasonMatch[1].trim() : 'No reason provided',\n    aiSimilarTo: similarMatch ? similarMatch[1].trim() : 'None',\n    shouldNotify: decision === 'YES' && confidence >= 7,\n    fullAiResponse: aiResponse\n  }\n}];"
-      },
-      "id": "parse-decision",
-      "name": "Parse AI Decision",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1050, 300]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "should-send",
-              "leftValue": "={{ $json.shouldNotify }}",
-              "rightValue": "true",
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+                "text": "=🎸 *Coreradio Alert!*\n\n*Artist:* {{ $('Check Favorites').item.json.artist }}\n*Release:* {{ $('Check Favorites').item.json.track }}\n*Genre:* {{ $('Check Favorites').item.json.genre }}\n*From:* {{ $('Check Favorites').item.json.country }}\n*Year:* {{ $('Check Favorites').item.json.year }}\n\n🤖 *Why check it out:*\n{{ $json.content }}\n\n🔗 [View on Coreradio]({{ $('Check Favorites').item.json.sourceUrl }})\n\n{{ $('Check Favorites').item.json.imageUrl ? '📸 Cover art available' : '' }}",
+                "options": {
+                    "parse_mode": "Markdown",
+                    "disable_web_page_preview": false
+                }
+            },
+            "name": "Send Favorite Alert",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.1,
+            "position": [
+                1450,
+                150
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "={{ $env.TELEGRAM_CREDENTIAL_ID }}",
+                    "name": "={{ $env.TELEGRAM_CREDENTIAL_NAME }}"
+                }
             }
-          ],
-          "combinator": "and"
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+                "text": "=📀 *New Coreradio Releases Scraped*\n\nFound {{ $('Parse HTML Releases').item.json.length || 'multiple' }} new releases.\n\n*Latest:* {{ $json.artist }} - {{ $json.track }}\n*Genre:* {{ $json.genre }}\n*From:* {{ $json.country }}\n\n🔗 [View on Coreradio]({{ $json.sourceUrl }})",
+                "options": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "name": "Send Daily Summary",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.1,
+            "position": [
+                1250,
+                400
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "={{ $env.TELEGRAM_CREDENTIAL_ID }}",
+                    "name": "={{ $env.TELEGRAM_CREDENTIAL_NAME }}"
+                }
+            }
         }
-      },
-      "id": "filter-decision",
-      "name": "Should Notify?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [1250, 300]
+    ],
+    "connections": {
+        "Schedule Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Fetch Coreradio HTML",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Fetch Coreradio HTML": {
+            "main": [
+                [
+                    {
+                        "node": "Parse HTML Releases",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse HTML Releases": {
+            "main": [
+                [
+                    {
+                        "node": "Check Favorites",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Favorites": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Favorites",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Favorites": {
+            "main": [
+                [
+                    {
+                        "node": "Gemini AI Analysis",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Send Daily Summary",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Gemini AI Analysis": {
+            "main": [
+                [
+                    {
+                        "node": "Send Favorite Alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
     },
-    {
-      "parameters": {
-        "chatId": "YOUR_PERSONAL_CHAT_ID",
-        "text": "=🎸 *New Release Match!*\n\n*Artist:* {{ $('Parse Music Data').item.json.artist }}\n*Release:* {{ $('Parse Music Data').item.json.track }}\n*Genre:* {{ $('Parse Music Data').item.json.genre }}\n*From:* {{ $('Parse Music Data').item.json.country }}\n{{ $json.year ? `*Year:* ${$json.year}` : '' }}\n\n🤖 *Why you'll love it:*\n{{ $json.aiReason }}\n\n🎯 *Similar to:* {{ $json.aiSimilarTo }}\n*AI Confidence:* {{ $json.aiConfidence }}/10\n\n📥 Check it out on Coreradio!",
-        "options": {
-          "parse_mode": "Markdown",
-          "disable_web_page_preview": false
-        }
-      },
-      "id": "send-notification",
-      "name": "Send to You",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.1,
-      "position": [1450, 200],
-      "credentials": {
-        "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL",
-          "name": "Telegram Bot"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "chatId": "={{ $('Parse Music Data').item.json.chatId }}",
-        "messageId": "={{ $('Parse Music Data').item.json.messageId }}",
-        "text": "={{ $json.fullAiResponse }}",
-        "options": {
-          "parse_mode": "HTML"
-        }
-      },
-      "id": "log-rejection",
-      "name": "Log Rejection (Optional)",
-      "type": "n8n-nodes-base.telegram",
-      "typeVersion": 1.1,
-      "position": [1450, 400],
-      "credentials": {
-        "telegramApi": {
-          "id": "YOUR_TELEGRAM_CREDENTIAL",
-          "name": "Telegram Bot"
-        }
-      }
+    "settings": {
+        "executionOrder": "v1"
     }
-  ],
-  "connections": {
-    "Telegram Trigger": {
-      "main": [
-        [
-          {
-            "node": "Parse Music Data",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Music Data": {
-      "main": [
-        [
-          {
-            "node": "Download Cover Art",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Download Cover Art": {
-      "main": [
-        [
-          {
-            "node": "Gemini 2.5 Pro Analysis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gemini 2.5 Pro Analysis": {
-      "main": [
-        [
-          {
-            "node": "Parse AI Decision",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse AI Decision": {
-      "main": [
-        [
-          {
-            "node": "Should Notify?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Should Notify?": {
-      "main": [
-        [
-          {
-            "node": "Send to You",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Log Rejection (Optional)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  }
 }
