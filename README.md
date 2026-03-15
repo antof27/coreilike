@@ -1,7 +1,7 @@
 # CoreILike
 
 CoreILike watches [CoreRadio](https://coreradio.online) for new metal releases and sends you a Telegram message only when something matches your taste, based on a pool of favorite bands and genres that you can update anytime by just texting the bot.
-
+This is a personal, non-profit project, built for fun!
 ---
 
 ## How it works
