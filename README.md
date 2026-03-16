@@ -63,7 +63,7 @@ Both branches read and write the same `$getWorkflowStaticData('global')` store, 
 | Component | Tool |
 |---|---|
 | Workflow automation | [n8n](https://n8n.io) self-hosted |
-| AI filtering & NLP | [Groq](https://groq.com) — Llama 3.3 70b |
+| AI filtering & NLP | [Groq](https://groq.com),  Llama 3.3 70b |
 | Notifications | Telegram Bot API |
 | Source | [CoreRadio](https://coreradio.online) |
 | Webhook tunnel (dev) | [ngrok](https://ngrok.com) |
@@ -74,7 +74,7 @@ Both branches read and write the same `$getWorkflowStaticData('global')` store, 
 
 ### What you need
 - n8n self-hosted instance with a public HTTPS URL
-- Groq API key — free at [console.groq.com](https://console.groq.com)
+- Groq API key, free at [console.groq.com](https://console.groq.com)
 - Telegram bot token from [@BotFather](https://t.me/BotFather)
 
 ### Environment variables
@@ -105,7 +105,7 @@ WEBHOOK_URL=https://your-public-url/
 
 Ships with my personal defaults, change them anytime via the bot:
 
-**Favorite bands:** Vildhjarta, Allt, Imminence, Karmanjaka, Humanity's Last Breath, Invent Animate, Currents, Lorna Shore, Spiritbox, Sleep Token, Bring Me The Horizon
+**Favorite bands:** Vildhjarta, Allt, Imminence, Karmanjakah, Humanity's Last Breath, Invent Animate, Currents, Lorna Shore, Spiritbox, Sleep Token, Bring Me The Horizon
 
 **Favorite genres:** Djent, Progressive Metalcore, Thall, Progressive Metal, Deathcore, Post-Hardcore
 
