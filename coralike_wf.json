@@ -1,5 +1,5 @@
 {
-    "name": "CoreILike",
+    "name": "Coralike",
     "nodes": [
         {
             "parameters": {
@@ -251,7 +251,7 @@
                 250,
                 700
             ],
-            "webhookId": "coreilike-bot-manager",
+            "webhookId": "coralike-bot-manager",
             "credentials": {
                 "telegramApi": {
                     "id": "={{ $env.TELEGRAM_CREDENTIAL_ID }}",

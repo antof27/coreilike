@@ -1,6 +1,6 @@
-# CoreILike
+# Coralike
 
-CoreILike watches [CoreRadio](https://coreradio.online) for new metal releases and sends you a Telegram message only when something matches your taste, based on a pool of favorite bands and genres that you can update anytime by just texting the bot.
+Coralike watches [CoreRadio](https://coreradio.online) for new metal releases and sends you a Telegram message only when something matches your taste, based on a pool of favorite bands and genres that you can update anytime by just texting the bot.
 
 This is a personal, non-profit project, built for fun!
 
@@ -91,7 +91,7 @@ WEBHOOK_URL=https://your-public-url/
 
 ### Steps
 
-1. Import `CoreILike_merged.json` into n8n
+1. Import `coralike_wf.json` into n8n
 2. Set up Telegram and Groq credentials in n8n
 3. Set `WEBHOOK_URL` to your public HTTPS URL and restart n8n
 4. Get your Telegram chat ID from [@userinfobot](https://t.me/userinfobot) and hardcode it in the **Send Favorite Alert** and **Send Reply** nodes
