@@ -21,13 +21,15 @@ I don't like Rap Metal anymore
 show my favorites
 ```
 
-It understands plain English and updates immediately.
+It understands English and updates immediately.
 
 ---
 
 ## Architecture
 
 Built entirely in [n8n](https://n8n.io). Two branches in a single workflow sharing the same persistent store:
+
+![Workflow Diagram](./assets/n8n_workflow.png)
 
 ```
 ── SCRAPER (every hour) ──────────────────────────────────────────────────────
